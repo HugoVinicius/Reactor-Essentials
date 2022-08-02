@@ -106,8 +106,53 @@ public class MonoTest {
                 , Throwable::printStackTrace, () -> log.info("FINISHED!"));
 
         log.info("---------------------------");
-//        StepVerifier.create(mono)
-//                .expectNext(name.toUpperCase())
-//                .verifyComplete();
+
+        StepVerifier.create(mono)
+                .expectNext(name.toUpperCase())
+                .verifyComplete();
+    }
+
+    @Test
+    public void monoDoOnError() {
+        Mono<Object> erro = Mono.error(new IllegalArgumentException("Illegal argument exception erro"))
+                .doOnError(e -> MonoTest.log.error("Error message: {}", e.getMessage()))
+                .log();
+
+        StepVerifier.create(erro)
+                .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+    
+    @Test
+    public void monoDoOnErrorResume() {
+        String name = "Hugo Vinicius";
+        Mono<Object> erro = Mono.error(new IllegalArgumentException("Illegal argument exception erro"))
+                .onErrorResume(s -> {
+                    log.info("Inside On Error Resume");
+                    return Mono.just(name);
+                })
+                .doOnError(e -> MonoTest.log.error("Error message: {}", e.getMessage()))
+                .log();
+
+        StepVerifier.create(erro)
+                .expectNext(name)
+                .verifyComplete();
+    }
+    
+    @Test
+    public void monoDoOnErrorReturn() {
+        String name = "Hugo Vinicius";
+        Mono<Object> erro = Mono.error(new IllegalArgumentException("Illegal argument exception erro"))
+                .onErrorReturn("EMPTY")
+                .onErrorResume(s -> {
+                    log.info("Inside On Error Resume");
+                    return Mono.just(name);
+                })
+                .doOnError(e -> MonoTest.log.error("Error message: {}", e.getMessage()))
+                .log();
+
+        StepVerifier.create(erro)
+                .expectNext("EMPTY")
+                .verifyComplete();
     }
 }
