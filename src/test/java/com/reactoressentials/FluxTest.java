@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.BaseSubscriber;
+import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -105,8 +106,9 @@ public class FluxTest {
     @Test
     public void fluxSuscriberPrettybackpressure() {
         Flux<Integer> flux = Flux.range(1, 10)
-                .limitRate(3)
-                .log();
+                .log()
+                .limitRate(3);
+
 
         flux.subscribe(i -> log.info("Number {}", i));
 
@@ -121,7 +123,7 @@ public class FluxTest {
         Flux<Integer> flux = Flux.range(1, 10)
                 .log();
 
-        flux.subscribe(new BaseSubscriber<Integer>() {
+        flux.subscribe(new BaseSubscriber<>() {
             private int count = 0;
             private final int requestCount = 2;
 
@@ -173,6 +175,34 @@ public class FluxTest {
     private Flux<Long> createInterval() {
         return Flux.interval(Duration.ofDays(12))
                 .log();
+    }
+
+    @Test
+    public void connectableFlux() throws Exception {
+        ConnectableFlux<Integer> connectableFlux = Flux.range(1, 10)
+//                .log()
+                .delayElements(Duration.ofMillis(100))
+                .publish();
+
+  //      connectableFlux.connect();
+
+//        log.info("Thread sleep for 300ms");
+//        Thread.sleep(300);
+//
+//        connectableFlux.subscribe(i -> log.info("Sub1 number {}", i));
+//
+//        log.info("Thread sleep for 200ms");
+//        Thread.sleep(200);
+//
+//        connectableFlux.subscribe(i -> log.info("Sub2 number {}", i));
+
+        StepVerifier
+                .create(connectableFlux)
+                .then(connectableFlux::connect)
+                .thenConsumeWhile(i -> i <= 5)
+                .expectNext(6,7,8,9,10)
+                .expectComplete()
+                .verify();
     }
 
 }
